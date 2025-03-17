@@ -1,0 +1,12 @@
+{% extends 'blackjack/base.html' %}
+
+{% block content %}
+<div class="card bg-secondary text-light p-4">
+    <h2>Login</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn btn-primary">Login</button>
+    </form>
+</div>
+{% endblock %}

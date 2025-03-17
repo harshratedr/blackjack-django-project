@@ -1,0 +1,32 @@
+{% extends 'blackjack/base.html' %}
+
+{% block content %}
+<h1>User Stats</h1>
+<h2>{{ player_profile.user.username }}</h2>
+<p>Credits: {{ player_profile.credits }}</p>
+<p>Win Rate: {{ player_profile.win_rate|floatformat:2 }}%</p>
+<p>Highest Bet: {{ player_profile.highest_bet }}</p>
+<p>Biggest Win: {{ player_profile.biggest_win }}</p>
+<p>Biggest Loss: {{ player_profile.biggest_loss }}</p>
+
+<h3>Transaction History</h3>
+<table class="table">
+    <thead>
+        <tr>
+            <th>Type</th>
+            <th>Amount</th>
+            <th>Timestamp</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for transaction in transaction_history %}
+        <tr>
+            <td>{{ transaction.transaction_type }}</td>
+            <td>{{ transaction.amount }}</td>
+            <td>{{ transaction.timestamp }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+<a href="{% url 'game' %}" class="btn btn-primary">Back to Game</a>
+{% endblock %}

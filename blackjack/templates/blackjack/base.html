@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blackjack</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-dark text-light">
+    <nav class="navbar navbar-expand-lg navbar-light bg-success">
+        <div class="container">
+            <a class="navbar-brand fw-bold fs-1" href="{% url 'game' %}">Blackjack</a>
+
+            <div class="navbar-nav">
+                {% if user.is_authenticated %}
+                    <a class="nav-link fw-bold fs-5" href="{% url 'user_profile' %}">Profile</a>
+                    <a class="nav-link fw-bold fs-5" href="{% url 'leaderboard' %}">Leaderboard</a>
+                    <a class="nav-link fw-bold fs-5" href="{% url 'logout' %}">Logout</a>
+                {% else %}
+                    <a class="nav-link fw-bold fs-5" href="{% url 'login' %}">Login</a>
+                    <a class="nav-link fw-bold fs-5" href="{% url 'register' %}">Register</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        {% block content %}
+        {% endblock %}
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
