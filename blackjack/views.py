@@ -52,25 +52,6 @@ def game(request):
     return render(request, 'blackjack/game.html', context)
 
 
-def handle_double_down(request, player_profile):
-
-    bet_amount = request.session['bet']
-    chip_pool = player_profile.credits
-
-    if bet_amount * 2 > chip_pool:
-        return render(request, 'blackjack/game.html', {'error': "You cannot double down more than you have!", 'balance': chip_pool})
-
-    player_profile.credits -= bet_amount 
-    request.session['bet'] = bet_amount * 2  
-    player_profile.save()
-
-    log_transaction(player_profile, 'Double Down', bet_amount) 
-    handle_hit(request, player_profile)  
-
-    if not request.session['game_over']: 
-        handle_stand(request, player_profile)
-
-
 def reset_game_session(request):
     
     keys_to_reset = ['deck', 'player_hand', 'dealer_hand', 'player_score', 'dealer_score', 'bet', 'game_over', 'result']
@@ -121,6 +102,26 @@ def handle_bet(request, player_profile, chip_pool):
 
    
     deal_initial_cards(request)
+
+
+
+def handle_double_down(request, player_profile):
+
+    bet_amount = request.session['bet']
+    chip_pool = player_profile.credits
+
+    if bet_amount * 2 > chip_pool:
+        return render(request, 'blackjack/game.html', {'error': "You cannot double down more than you have!", 'balance': chip_pool})
+
+    player_profile.credits -= bet_amount 
+    request.session['bet'] = bet_amount * 2  
+    player_profile.save()
+
+    log_transaction(player_profile, 'Double Down', bet_amount) 
+    handle_hit(request, player_profile)  
+
+    if not request.session['game_over']: 
+        handle_stand(request, player_profile)
 
 
 
