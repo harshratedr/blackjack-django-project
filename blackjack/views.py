@@ -12,21 +12,21 @@ def game(request):
     player_profile, _ = PlayerProfile.objects.get_or_create(user=request.user)
     chip_pool = player_profile.credits
 
-    # Reset game state if "Play Again" is clicked
-    if request.method == 'GET' and 'reset' in request.GET:
+    
+    if request.method == 'GET' and 'reset' in request.GET:  
         reset_game_session(request)
         return redirect('game')
 
-    # Daily login bonus
+   
     today = date.today()
     if player_profile.last_login_date != today:
         give_daily_bonus(player_profile)
 
-    # Initialize game state if not already done
+    
     if 'deck' not in request.session:
         initialize_game_session(request)
 
-    # Handle game actions
+   
     if request.method == 'POST':
         action = request.POST.get('action')
         if action == 'bet':
@@ -35,8 +35,10 @@ def game(request):
             handle_hit(request, player_profile)
         elif action == 'stand':
             handle_stand(request, player_profile)
+        elif action == 'double_down':
+            handle_double_down(request, player_profile)
 
-    # Prepare context for rendering
+    
     context = {
         'player_hand': request.session.get('player_hand', []),
         'dealer_hand': request.session.get('dealer_hand', []),
@@ -49,21 +51,45 @@ def game(request):
     }
     return render(request, 'blackjack/game.html', context)
 
+
+def handle_double_down(request, player_profile):
+
+    bet_amount = request.session['bet']
+    chip_pool = player_profile.credits
+
+    if bet_amount * 2 > chip_pool:
+        return render(request, 'blackjack/game.html', {'error': "You cannot double down more than you have!", 'balance': chip_pool})
+
+    player_profile.credits -= bet_amount 
+    request.session['bet'] = bet_amount * 2  
+    player_profile.save()
+
+    log_transaction(player_profile, 'Double Down', bet_amount) 
+    handle_hit(request, player_profile)  
+
+    if not request.session['game_over']: 
+        handle_stand(request, player_profile)
+
+
 def reset_game_session(request):
-    """Reset the game session data."""
+    
     keys_to_reset = ['deck', 'player_hand', 'dealer_hand', 'player_score', 'dealer_score', 'bet', 'game_over', 'result']
     for key in keys_to_reset:
         request.session.pop(key, None)
 
+
+
 def give_daily_bonus(player_profile):
-    """Give daily login bonus to the player."""
+    
     player_profile.credits += 100
     player_profile.last_login_date = date.today()
     player_profile.save()
     TransactionHistory.objects.create(player=player_profile, transaction_type='Bonus', amount=100)
 
+
+
 def initialize_game_session(request):
-    """Initialize the game session with a new deck and hands."""
+    
     request.session['deck'] = get_deck()
     random.shuffle(request.session['deck'])
     request.session['player_hand'] = []
@@ -74,42 +100,50 @@ def initialize_game_session(request):
     request.session['game_over'] = False
     request.session['result'] = None
 
+
+
 def handle_bet(request, player_profile, chip_pool):
-    """Handle the betting action."""
+    
     bet_amount = int(request.POST.get('bet_amount'))
     if bet_amount > chip_pool:
         return render(request, 'blackjack/game.html', {'error': "You cannot bet more than you have!", 'balance': chip_pool})
 
-    # Update session and player profile
+    
     request.session['bet'] = bet_amount
     player_profile.credits -= bet_amount
     player_profile.save()
     log_transaction(player_profile, 'Bet', bet_amount)
 
-    # Update highest bet
+    
     if bet_amount > player_profile.highest_bet:
         player_profile.highest_bet = bet_amount
         player_profile.save()
 
-    # Deal initial cards
+   
     deal_initial_cards(request)
 
+
+
 def deal_initial_cards(request):
-    """Deal initial cards to player and dealer."""
+    
     request.session['player_hand'] = [deal_card(request.session['deck']), deal_card(request.session['deck'])]
     request.session['dealer_hand'] = [deal_card(request.session['deck']), deal_card(request.session['deck'])]
     request.session['player_score'] = hand_value(request.session['player_hand'])
     request.session['dealer_score'] = hand_value(request.session['dealer_hand'])
 
+
+
 def handle_hit(request, player_profile):
-    """Handle the hit action."""
+    
     request.session['player_hand'].append(deal_card(request.session['deck']))
     request.session['player_score'] = hand_value(request.session['player_hand'])
     if request.session['player_score'] > 21:
         end_game_with_loss(request, player_profile)
 
+
+
 def end_game_with_loss(request, player_profile):
-    """End the game with a loss for the player."""
+    
     request.session['game_over'] = True
     request.session['result'] = 'You bust! Dealer wins.'
     player_profile.credits -= request.session['bet']
@@ -117,16 +151,22 @@ def end_game_with_loss(request, player_profile):
     player_profile.save()
     log_transaction(player_profile, 'Loss', request.session['bet'])
 
+
+
 def handle_stand(request, player_profile):
-    """Handle the stand action."""
+    
     while hand_value(request.session['dealer_hand']) < 17:
         request.session['dealer_hand'].append(deal_card(request.session['deck']))
     request.session['dealer_score'] = hand_value(request.session['dealer_hand'])
     request.session['game_over'] = True
     determine_winner(request, player_profile)
 
+
+
+
 def determine_winner(request, player_profile):
-    """Determine the winner of the game."""
+    
+    
     player_score = request.session['player_score']
     dealer_score = request.session['dealer_score']
     bet_amount = request.session['bet']
@@ -147,8 +187,11 @@ def determine_winner(request, player_profile):
 
     player_profile.save()
 
+
+
+
 def log_transaction(player_profile, transaction_type, amount):
-    """Log a transaction in the history."""
+    
     TransactionHistory.objects.create(player=player_profile, transaction_type=transaction_type, amount=amount)
 
 
@@ -164,6 +207,7 @@ def user_stats(request):
     return render(request, 'blackjack/user_stats.html', context)
 
 
+
 def register(request):
     if request.method == 'POST':
         form = RegisterForm(request.POST)
@@ -175,6 +219,9 @@ def register(request):
     else:
         form = RegisterForm()
     return render(request, 'blackjack/register.html', {'form': form})
+
+
+
 
 def user_login(request):
     if request.method == 'POST':
@@ -190,9 +237,15 @@ def user_login(request):
         form = LoginForm()
     return render(request, 'blackjack/login.html', {'form': form})
 
+
+
+
 def user_logout(request):
     logout(request)
     return redirect('login')
+
+
+
 
 @login_required
 def user_profile(request):
@@ -204,6 +257,9 @@ def user_profile(request):
     }
     return render(request, 'blackjack/user_profile.html', context)
 
+
+
+
 @login_required
 def leaderboard(request):
     top_players = PlayerProfile.objects.order_by('-credits')[:10]
@@ -211,3 +267,18 @@ def leaderboard(request):
         'top_players': top_players,
     }
     return render(request, 'blackjack/leaderboard.html', context)
+
+
+@login_required
+def buy_chips(request):
+    player_profile = PlayerProfile.objects.get(user=request.user)
+
+    if request.method == 'POST':
+        amount = int(request.POST.get('amount', 0))
+        if amount > 0:
+            player_profile.credits += amount
+            player_profile.save()
+            log_transaction(player_profile, 'Buy Chips', amount)  
+            return redirect('game')  
+
+    return render(request, 'blackjack/buy_chips.html', {'balance': player_profile.credits})
